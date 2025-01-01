@@ -1,11 +1,33 @@
+/********************************************************
+ * /Applications/Works/e-commerce/backend/routes/users.js
+ ********************************************************/
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User.js");
+
 // Tüm kullanıcıları getirme (Read - All)
 router.get("/", async (req, res) => {
   try {
     const users = await User.find();
     res.status(200).json(users);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Server error." });
+  }
+});
+
+// Kullanıcı güncelleme (Update)
+router.put("/:email", async (req, res) => {
+  try {
+    const email = req.params.email;
+    const updatedUser = await User.findOneAndUpdate({ email }, req.body, {
+      new: true,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.status(200).json(updatedUser);
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Server error." });
@@ -26,5 +48,5 @@ router.delete("/:email", async (req, res) => {
     res.status(500).json({ error: "Server error." });
   }
 });
-module.exports = router;
+
 module.exports = router;
