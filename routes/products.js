@@ -1,4 +1,5 @@
 const express = require("express");
+const Category = require("../models/Category.js");
 const router = express.Router();
 const Product = require("../models/Product.js");
 
@@ -14,15 +15,31 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Server error." });
   }
 });
-
 // Tüm ürünleri getirme (Read - All)
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find();
+    const { category } = req.query; // <- kategori ismi (string) gelecek, örn "Kategori1"
+
+    // Önce queryObj hazırlayacağız
+    const queryObj = {};
+
+    if (category) {
+      // 1) Category koleksiyonunda name=category olanı bul
+      const foundCat = await Category.findOne({ name: category });
+      if (!foundCat) {
+        // Böyle bir isimde kategori yok => ürünler boş dönebilir
+        return res.status(200).json([]);
+      }
+      // 2) foundCat._id => ObjectId
+      queryObj.category = foundCat._id;
+    }
+
+    // 3) Sorgu
+    const products = await Product.find(queryObj);
 
     res.status(200).json(products);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Server error." });
   }
 });
