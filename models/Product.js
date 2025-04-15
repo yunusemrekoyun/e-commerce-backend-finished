@@ -12,7 +12,14 @@ const ReviewSchema = mongoose.Schema(
 const ProductSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
-    img: [{ type: String, required: true }],
+    // Çoklu resim: en az 1, en fazla 6
+    // "img" her eleman: { data: Buffer, contentType: String }
+    img: [
+      {
+        data: Buffer,
+        contentType: String,
+      },
+    ],
     reviews: [ReviewSchema],
     colors: [{ type: String, required: true }],
     sizes: [{ type: String, required: true }],
