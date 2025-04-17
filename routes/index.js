@@ -11,7 +11,9 @@ const couponRoute = require("./coupons.js");
 const userRoute = require("./users.js");
 const paymentRoute = require("./payment.js");
 const addressRoute = require("./address.js");
+const ordersRoute = require("./orders.js");
 
+router.use("/orders", ordersRoute);
 router.use("/categories", categoryRoute);
 router.use("/auth", authRoute);
 router.use("/products", productRoute);
