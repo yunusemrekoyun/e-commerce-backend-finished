@@ -14,10 +14,13 @@ router.get("/filters", async (req, res) => {
     const distinctColors = await Product.distinct("colors");
     // 2) Bedenleri distinct olarak çek
     const distinctSizes = await Product.distinct("sizes");
+    // 3) Markaları distinct olarak çek
+    const distinctBrands = await Product.distinct("brand");
 
     return res.json({
       colors: distinctColors,
       sizes: distinctSizes,
+      brands: distinctBrands,
     });
   } catch (error) {
     console.error("filters endpoint error:", error);
@@ -28,63 +31,42 @@ router.get("/filters", async (req, res) => {
 // Yeni bir ürün oluşturma (Create)
 router.post("/", upload.array("img", 6), async (req, res) => {
   try {
-    // req.body’de name, price.current vb. alanlar gelecek
-    // req.files’de ise bir dizi resim (1-6 arası)
     const {
       name,
       category,
+      brand,
       description,
       colors,
       sizes,
-      // price nesnesi vs. buraya tek tek ayırabilirsin veya
-      // price.current, price.discount gibi
       current,
       discount,
     } = req.body;
 
-    // Temel kontroller
-    if (!name || !category || !description) {
+    if (!name || !category || !brand || !description) {
       return res
         .status(400)
-        .json({ error: "Name, category, and description are required." });
+        .json({ error: "Name, category, brand ve description gerekli." });
     }
     if (!req.files || req.files.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "At least one product image is required." });
+      return res.status(400).json({ error: "En az bir görsel gerekli." });
     }
 
-    // Fiyat
     const priceObj = {
       current: Number(current) || 0,
       discount: Number(discount) || 0,
     };
 
-    // colors & sizes string olarak geldiyse (virgüllü ya da senin formatın nasılsa) => diziye çevir
-    // Frontend formundan direkt dizi de gelebilir. Örnek kalsın.
-    let colorArr = [];
-    if (colors) {
-      // Örnek: "Red\nBlue" => satır bazlı
-      // colorArr = colors.split("\n").map((c) => c.trim());
-      colorArr = Array.isArray(colors)
-        ? colors
-        : colors.split(",").map((c) => c.trim());
-    }
+    const colorArr = Array.isArray(colors)
+      ? colors
+      : colors.split(",").map((c) => c.trim());
+    const sizeArr = Array.isArray(sizes)
+      ? sizes
+      : sizes.split(",").map((s) => s.trim());
 
-    let sizeArr = [];
-    if (sizes) {
-      sizeArr = Array.isArray(sizes)
-        ? sizes
-        : sizes.split(",").map((s) => s.trim());
-    }
-
-    // Görseller
-    const images = req.files.map((file) => {
-      return {
-        data: file.buffer,
-        contentType: file.mimetype,
-      };
-    });
+    const images = req.files.map((file) => ({
+      data: file.buffer,
+      contentType: file.mimetype,
+    }));
 
     const newProduct = new Product({
       name,
@@ -94,12 +76,13 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       sizes: sizeArr,
       price: priceObj,
       category,
+      brand, // ← burayı ekledik
     });
 
     await newProduct.save();
     return res.status(201).json({ message: "Product created successfully." });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Server error." });
   }
 });
@@ -107,7 +90,8 @@ router.post("/", upload.array("img", 6), async (req, res) => {
 // Tüm ürünleri getirme (Read - All)
 router.get("/", async (req, res) => {
   try {
-    const { category, colors, sizes, priceMin, priceMax, sort } = req.query;
+    const { category, colors, sizes, priceMin, priceMax, sort, brand } =
+      req.query;
 
     const queryObj = {};
 
@@ -120,27 +104,33 @@ router.get("/", async (req, res) => {
       queryObj.category = foundCat._id;
     }
 
-    // 2) Colors
+    // 2) Brand filtresi
+    if (brand) {
+      const brandArr = brand.split(",");
+      queryObj.brand = { $in: brandArr };
+    }
+
+    // 3) Colors
     if (colors) {
       const colorArr = colors.split(",");
       queryObj.colors = { $in: colorArr };
     }
 
-    // 3) Sizes
+    // 4) Sizes
     if (sizes) {
       const sizeArr = sizes.split(",");
       queryObj.sizes = { $in: sizeArr };
     }
 
-    // 4) Price
+    // 5) Price
     const minVal = priceMin ? Number(priceMin) : 0;
     const maxVal = priceMax ? Number(priceMax) : 999999;
     queryObj["price.current"] = { $gte: minVal, $lte: maxVal };
 
-    // 5) find
+    // 6) Build query
     let query = Product.find(queryObj);
 
-    // 6) Sort
+    // 7) Sort
     if (sort) {
       switch (sort) {
         case "priceAsc":
@@ -168,14 +158,14 @@ router.get("/", async (req, res) => {
 
     const products = await query;
 
-    // Buffer -> Base64
+    // 8) Buffer -> Base64 + brand ekle
     const productsWithBase64 = products.map((prod) => {
-      const base64Images = prod.img.map((fileObj) => {
-        return `data:${fileObj.contentType};base64,${fileObj.data.toString(
-          "base64"
-        )}`;
-      });
-
+      const base64Images = prod.img.map(
+        (fileObj) =>
+          `data:${fileObj.contentType};base64,${fileObj.data.toString(
+            "base64"
+          )}`
+      );
       return {
         _id: prod._id,
         name: prod.name,
@@ -184,6 +174,7 @@ router.get("/", async (req, res) => {
         sizes: prod.sizes,
         price: prod.price,
         category: prod.category,
+        brand: prod.brand, // ← döndürülüyor
         description: prod.description,
         createdAt: prod.createdAt,
         updatedAt: prod.updatedAt,
@@ -206,39 +197,36 @@ router.get("/:productId", async (req, res) => {
       return res.status(404).json({ error: "Product not found." });
     }
 
-    // Tek üründe Base64
-    // Artık her görsele subdoc._id'yi de ekleyip front-end'e gönderiyoruz
-    const imageObjects = product.img.map((fileObj) => {
-      return {
-        _id: fileObj._id, // mongoose subdoc id
-        base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
-          "base64"
-        )}`,
-      };
-    });
+    const imageObjects = product.img.map((fileObj) => ({
+      _id: fileObj._id,
+      base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
+        "base64"
+      )}`,
+    }));
 
     const productWithBase64 = {
       _id: product._id,
       name: product.name,
-      img: imageObjects, // Artık array of { _id, base64 }
+      img: imageObjects,
       colors: product.colors,
       sizes: product.sizes,
       price: product.price,
       category: product.category,
+      brand: product.brand, // ← burada da
       description: product.description,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
-      reviews: product.reviews || [], // eğer null/undefined ise boş array
+      reviews: product.reviews || [],
     };
 
     res.status(200).json(productWithBase64);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Server error." });
   }
 });
 
-// Ürün güncelleme
+// Ürün güncelleme (Update)
 router.put("/:productId", upload.array("img", 6), async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -247,23 +235,22 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       return res.status(404).json({ error: "Product not found." });
     }
 
-    // Body’den gelen alanları kullan
     const {
       name,
       category,
+      brand,
       description,
       current,
       discount,
       colors,
       sizes,
-      // "keepImages" parametresi JSON string olarak gelecek
-      // Frontend'te "ayakta kalacak" subdoc._id'leri dizi olarak gönderiyoruz
       keepImages,
     } = req.body;
 
     // Text fields
     if (name) existingProduct.name = name;
     if (category) existingProduct.category = category;
+    if (brand) existingProduct.brand = brand; // ← güncelle
     if (description) existingProduct.description = description;
     if (current || discount) {
       existingProduct.price.current = Number(current) || 0;
@@ -272,47 +259,36 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
 
     // Colors, sizes parse
     if (colors) {
-      const colorArr = Array.isArray(colors)
+      existingProduct.colors = Array.isArray(colors)
         ? colors
         : colors.split(",").map((c) => c.trim());
-      existingProduct.colors = colorArr;
     }
-
     if (sizes) {
-      const sizeArr = Array.isArray(sizes)
+      existingProduct.sizes = Array.isArray(sizes)
         ? sizes
         : sizes.split(",").map((s) => s.trim());
-      existingProduct.sizes = sizeArr;
     }
 
-    // 1) "keepImages" => hangi subdoc._id'ler saklansın?
+    // Images: keepImages & new files (aynı kaldı)
     let keepIDs = [];
     if (keepImages) {
       try {
-        // keepImages JSON string bekliyoruz
-        // Örnek: '["64ff5de06fcd3ef5f4061b84","64ff5de06fcd3ef5f4061b85"]'
         keepIDs = JSON.parse(keepImages);
       } catch (e) {
-        console.log("keepImages parse error:", e);
+        console.error("keepImages parse error:", e);
       }
     }
-
-    // Mevcut product.img arrayini keepIDs listesindekilerle filtrele
     existingProduct.img = existingProduct.img.filter((imgSubDoc) =>
       keepIDs.includes(imgSubDoc._id.toString())
     );
-
-    // 2) Yeni resimler var mı? => ekle
-    if (req.files && req.files.length > 0) {
-      req.files.forEach((file) => {
+    if (req.files && req.files.length) {
+      req.files.forEach((file) =>
         existingProduct.img.push({
           data: file.buffer,
           contentType: file.mimetype,
-        });
-      });
+        })
+      );
     }
-
-    // 3) Maksimum 6 kontrolü
     if (existingProduct.img.length > 6) {
       return res
         .status(400)
@@ -322,7 +298,7 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
     await existingProduct.save();
     res.status(200).json({ message: "Product updated successfully." });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Server error." });
   }
 });
@@ -337,7 +313,7 @@ router.delete("/:productId", async (req, res) => {
     }
     res.status(200).json({ message: "Product deleted successfully." });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Server error." });
   }
 });
@@ -350,25 +326,21 @@ router.get("/search/:productName", async (req, res) => {
       name: { $regex: productName, $options: "i" },
     });
 
-    // Base64 dönelim
-    const productsWithBase64 = products.map((prod) => {
-      const base64Images = prod.img.map((fileObj) => {
-        return `data:${fileObj.contentType};base64,${fileObj.data.toString(
-          "base64"
-        )}`;
-      });
-
-      return {
-        _id: prod._id,
-        name: prod.name,
-        img: base64Images,
-        // ... vs
-      };
-    });
+    const productsWithBase64 = products.map((prod) => ({
+      _id: prod._id,
+      name: prod.name,
+      img: prod.img.map(
+        (fileObj) =>
+          `data:${fileObj.contentType};base64,${fileObj.data.toString(
+            "base64"
+          )}`
+      ),
+      brand: prod.brand, // ← ekledik
+    }));
 
     res.status(200).json(productsWithBase64);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Server error." });
   }
 });
