@@ -9,16 +9,17 @@ const authMiddleware = require("../middlewares/authMiddleware");
 // Adres Ekleme
 router.post("/add", authMiddleware, async (req, res) => {
   try {
-    const { name, email, address, city, district } = req.body;
+    console.log("Gelen veri:", req.body); // 🚨 EKLE BUNU
+    const { name, email, phone, address, city, district } = req.body;
 
-    // Yeni adres oluştur
     const newAddress = new Address({
       name,
       email,
+      phone,
       address,
       city,
       district,
-      userId: req.user.id, // Token'dan gelen kullanıcı ID'si
+      userId: req.user.id,
     });
 
     await newAddress.save();
