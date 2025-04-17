@@ -4,6 +4,7 @@
 const express = require("express");
 const router = express.Router();
 
+const dashboardRoute = require("./dashboard.js");
 const categoryRoute = require("./categories.js");
 const authRoute = require("./auth.js");
 const productRoute = require("./products.js");
@@ -21,5 +22,6 @@ router.use("/coupons", couponRoute);
 router.use("/users", userRoute);
 router.use("/payment", paymentRoute);
 router.use("/address", addressRoute);
+router.use("/dashboard", dashboardRoute);
 
 module.exports = router;
