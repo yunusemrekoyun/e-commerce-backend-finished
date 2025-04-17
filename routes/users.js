@@ -1,11 +1,8 @@
-/********************************************************
- * /Applications/Works/e-commerce/backend/routes/users.js
- ********************************************************/
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User.js");
 
-// Tüm kullanıcıları getirme (Read - All)
+// Tüm kullanıcıları getirme
 router.get("/", async (req, res) => {
   try {
     const users = await User.find();
@@ -16,7 +13,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Kullanıcı güncelleme (Update)
+// Kullanıcı güncelleme (Username, email vb.)
 router.put("/:email", async (req, res) => {
   try {
     const email = req.params.email;

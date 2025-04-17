@@ -1,6 +1,3 @@
-/********************************************************
- * /Applications/Works/e-commerce/backend/routes/auth.js
- ********************************************************/
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
@@ -40,7 +37,6 @@ router.post("/register", async (req, res) => {
       email,
       password: hashedPassword,
       avatar: defaultAvatar,
-      // role: "user",
     });
 
     await newUser.save();
@@ -54,8 +50,6 @@ router.post("/register", async (req, res) => {
 
 /********************************************************
  * /login
- * Access token (15m), refresh token (7d)
- * role bilgisini de front-end'e döndürüyoruz
  ********************************************************/
 router.post("/login", async (req, res) => {
   try {
@@ -98,9 +92,50 @@ router.post("/login", async (req, res) => {
 });
 
 /********************************************************
+ * /change-password
+ * Body: { oldPassword, newPassword, confirmPassword }
+ ********************************************************/
+router.put("/change-password", authMiddleware, async (req, res) => {
+  try {
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return res
+        .status(400)
+        .json({ error: "All password fields are required." });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "New passwords do not match." });
+    }
+
+    // Mevcut kullanıcıyı al
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Eski şifre kontrolü
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Incorrect old password." });
+    }
+
+    // Yeni şifreyi hashleyip kaydet
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+
+    // İstersen tüm eski access token'ları geçersizleyecek blacklist adımı ekleyebilirsin
+    // blacklistedTokens.add(req.headers.authorization.split(" ")[1]);
+
+    return res.status(200).json({ message: "Password updated successfully." });
+  } catch (error) {
+    console.error("Change-password error:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+
+/********************************************************
  * /refresh
- * Eski access token kara listeye at
- * Yeni access token üret
  ********************************************************/
 router.post("/refresh", (req, res) => {
   try {
@@ -108,7 +143,6 @@ router.post("/refresh", (req, res) => {
     if (!refreshToken) {
       return res.status(400).json({ error: "Refresh token missing" });
     }
-    // 1) refreshToken doğrula
     jwt.verify(refreshToken, REFRESH_SECRET, (err, decoded) => {
       if (err) {
         return res
@@ -116,12 +150,10 @@ router.post("/refresh", (req, res) => {
           .json({ error: "Invalid or expired refresh token" });
       }
 
-      // 2) Eski accessToken'ı kara listeye al => "kullanılmasın"
       if (oldAccessToken) {
         blacklistedTokens.add(oldAccessToken);
       }
 
-      // 3) Yeni access token => 15m
       const newAccessToken = jwt.sign(
         { id: decoded.id, email: decoded.email },
         SECRET_KEY,
@@ -141,13 +173,12 @@ router.post("/refresh", (req, res) => {
 
 /********************************************************
  * /logout
- * Token'ı kara listeye ekle (opsiyonel)
  ********************************************************/
 router.post("/logout", authMiddleware, (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (token) {
-      blacklistedTokens.add(token); // Bu token tekrar kullanılamaz
+      blacklistedTokens.add(token);
     }
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
@@ -158,7 +189,6 @@ router.post("/logout", authMiddleware, (req, res) => {
 
 /********************************************************
  * /me
- * Kullanıcı verisi + istersen adresleri dönebiliriz
  ********************************************************/
 router.get("/me", authMiddleware, async (req, res) => {
   try {
@@ -166,12 +196,6 @@ router.get("/me", authMiddleware, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-
-    // Eğer adres bilgilerini de eklemek istersen:
-    // const addresses = await Address.find({ userId: req.user.id });
-    // res.status(200).json({ user, addresses });
-    // Şimdilik sadece user döndürüyoruz:
-
     res.status(200).json({
       id: user._id,
       email: user.email,
