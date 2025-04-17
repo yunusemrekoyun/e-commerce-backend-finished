@@ -9,10 +9,9 @@ const OrderItemSchema = new mongoose.Schema(
     },
     quantity: { type: Number, required: true },
     price: { type: Number, required: true },
-    // snapshot fields:
     name: { type: String, required: true },
     brand: { type: String, required: true },
-    category: { type: String, required: true },
+    category: { type: String, required: true }, // artık kategori adı
     colors: [{ type: String }],
     sizes: [{ type: String }],
   },
@@ -40,6 +39,18 @@ const OrderSchema = new mongoose.Schema(
 
     items: [OrderItemSchema],
     total: { type: Number, required: true },
+
+    // YENİ: durum alanı
+    status: {
+      type: String,
+      enum: [
+        "Sipariş Alındı",
+        "Sipariş Onaylandı",
+        "Kargoya Verildi",
+        "Teslim Edildi",
+      ],
+      default: "Sipariş Alındı",
+    },
   },
   { timestamps: true }
 );
