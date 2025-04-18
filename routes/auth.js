@@ -1,3 +1,6 @@
+/********************************************************
+ * /Applications/Works/e-commerce/backend/routes/auth.js
+ ********************************************************/
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
@@ -21,26 +24,20 @@ const REFRESH_SECRET = process.env.REFRESH_SECRET || "refresh_secret";
 router.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    const defaultAvatar = generateRandomAvatar();
-
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
         .status(400)
         .json({ error: "Email address is already registered." });
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUser = new User({
       username,
       email,
       password: hashedPassword,
-      avatar: defaultAvatar,
+      // avatar artık kaydedilmiyor
     });
-
     await newUser.save();
-
     return res.status(201).json({ message: "Register successful" });
   } catch (error) {
     console.error("Register error:", error);
@@ -54,25 +51,18 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ error: "Invalid email." });
-    }
+    if (!user) return res.status(401).json({ error: "Invalid email." });
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    if (!isPasswordValid)
       return res.status(401).json({ error: "Invalid password." });
-    }
 
-    // Access token => 15m
     const accessToken = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       SECRET_KEY,
       { expiresIn: "15m" }
     );
-
-    // Refresh token => 7d
     const refreshToken = jwt.sign(
       { id: user._id, email: user.email },
       REFRESH_SECRET,
@@ -193,15 +183,13 @@ router.post("/logout", authMiddleware, (req, res) => {
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
     res.status(200).json({
       id: user._id,
       email: user.email,
       username: user.username,
       role: user.role,
-      avatar: user.avatar,
+      // avatar artık gönderilmiyor
     });
   } catch (error) {
     console.error("/me error:", error);
