@@ -512,14 +512,29 @@ router.delete("/:productId", async (req, res) => {
     res.status(500).json({ error: "Server error." });
   }
 });
+router.get("/detail/:id", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate("category", "name")  // category populate edilir
+      .populate("brand");    // Eğer brand bir başka modele referanssa burada popülasyonu eklemelisiniz
 
+    if (!product) {
+      return res.status(404).json({ error: "Ürün bulunamadı." });
+    }
+
+    res.json(product); // Burada product içinde 'name', 'category' ve 'brand' doğru şekilde dönecektir.
+  } catch (error) {
+    console.error("Ürün detay getirme hatası:", error);
+    res.status(500).json({ error: "Sunucu hatası." });
+  }
+});
 // Ürün isme göre arama
 router.get("/search/:productName", async (req, res) => {
   try {
     const productName = req.params.productName;
     const products = await Product.find({
       name: { $regex: productName, $options: "i" },
-    });
+    }); 
 
     const productsWithBase64 = products.map((prod) => ({
       _id: prod._id,
