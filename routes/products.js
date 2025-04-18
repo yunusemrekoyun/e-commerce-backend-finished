@@ -530,7 +530,8 @@ router.get("/search/:productName", async (req, res) => {
             "base64"
           )}`
       ),
-      brand: prod.brand, // ← ekledik
+      brand: prod.brand,
+      price: prod.price, // ← ekledik
     }));
 
     res.status(200).json(productsWithBase64);
