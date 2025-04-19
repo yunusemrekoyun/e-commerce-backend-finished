@@ -12,8 +12,8 @@ const OrderItemSchema = new mongoose.Schema(
     name: { type: String, required: true },
     brand: { type: String, required: true },
     category: { type: String, required: true }, // artık kategori adı
-    colors: [{ type: String }],
-    sizes: [{ type: String }],
+    colors: [{ type: String, required: false }], // Boş olabilir
+    sizes: [{ type: String, required: false }],  // Boş olabilir
   },
   { _id: false }
 );
