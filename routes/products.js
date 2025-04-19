@@ -251,6 +251,8 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       category,
       brand,
       description,
+      colors,   // Opsiyonel
+      sizes,    // Opsiyonel
       current,
       discount,
     } = req.body;
@@ -269,12 +271,6 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       discount: Number(discount) || 0,
     };
 
-    const colorArr = Array.isArray(colors)
-      ? colors
-      : colors.split(",").map((c) => c.trim());
-    const sizeArr = Array.isArray(sizes)
-      ? sizes
-      : sizes.split(",").map((s) => s.trim());
     // colors ve sizes opsiyonel, boşsa boş dizi atıyoruz
     const colorArr = colors ? (Array.isArray(colors) ? colors : colors.split(",").map((c) => c.trim())) : [];
     const sizeArr = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(",").map((s) => s.trim())) : [];
@@ -292,7 +288,6 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       sizes: sizeArr,
       price: priceObj,
       category,
-      brand, // ← burayı ekledik
       brand,
     });
 
@@ -460,6 +455,7 @@ router.get("/:productId", async (req, res) => {
   }
 });
 
+/// Ürün güncelleme (Update)
 router.put("/:productId", upload.array("img", 6), async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -468,7 +464,6 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       return res.status(404).json({ error: "Product not found." });
     }
 
-    // 1) Temel alanları güncelle
     // Temel alanları güncelle
     const {
       name,
@@ -487,24 +482,13 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
     if (category) existingProduct.category = category;
     if (brand) existingProduct.brand = brand;
     if (description) existingProduct.description = description;
-    if (current != null || discount != null) {
-      existingProduct.price.current = Number(current) || 0;
-      existingProduct.price.discount = Number(discount) || 0;
 
     if (current !== undefined) {
       existingProduct.price.current = Number(current);
     }
-    if (colors) {
-      existingProduct.colors = Array.isArray(colors)
-        ? colors
-        : colors.split(",").map((c) => c.trim());
     if (discount !== undefined) {
       existingProduct.price.discount = Number(discount);
     }
-    if (sizes) {
-      existingProduct.sizes = Array.isArray(sizes)
-        ? sizes
-        : sizes.split(",").map((s) => s.trim());
 
     // 1) Renk güncellemesi
     if (colors !== undefined) {
@@ -528,28 +512,33 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       }
     }
 
+    // Yorum güncellemesi
+    if (reviews !== undefined) {
+      try {
+        existingProduct.reviews = Array.isArray(reviews) ? reviews : JSON.parse(reviews);
+      } catch (err) {
+        return res.status(400).json({ error: "Invalid reviews format." });
+      }
     }
 
-    // 3) ** Sadece resim değişikliği yapıldıysa** mevcut img dizisini filtrele ve/veya yenilerini ekle
-    if (keepImages || (req.files && req.files.length > 0)) {
     // 3) Görseller güncellemesi
     if (keepImages !== undefined || (req.files && req.files.length > 0)) {
       let keepIDs = [];
       if (keepImages) {
         try {
           keepIDs = JSON.parse(keepImages);
-        } catch {}
         } catch (err) {
           return res.status(400).json({ error: "Invalid keepImages format." });
         }
       }
-      // Sadece keepIDs içindekileri tut
+
       // Seçilen görselleri koru
       existingProduct.img = existingProduct.img.filter((imgSubDoc) =>
         keepIDs.includes(imgSubDoc._id.toString())
       );
 
       // Yeni yüklenenleri ekle
+      if (req.files?.length) {
         req.files.forEach((file) =>
           existingProduct.img.push({
             data: file.buffer,
@@ -560,23 +549,17 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
 
       // Maksimum 6 resim kontrolü
       if (existingProduct.img.length > 6) {
-        return res
-          .status(400)
-          .json({ error: "En fazla 6 görsel yükleyebilirsiniz." });
         return res.status(400).json({ error: "En fazla 6 görsel yükleyebilirsiniz." });
       }
     }
 
-    // 4) Kaydet
     // Ürünü kaydet
     await existingProduct.save();
 
+    // Güncellenmiş ürünü base64 img ile geri gönder
     const updated = await Product.findById(productId);
     const imageObjects = updated.img.map((fileObj) => ({
       _id: fileObj._id,
-      base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
-        "base64"
-      )}`,
       base64: `data:${fileObj.contentType};base64,${fileObj.data.toString("base64")}`,
     }));
 
@@ -601,6 +584,7 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 });
+<<<<<<< HEAD
 
 // Ürün silme (Delete)
 router.delete("/:productId", async (req, res) => {
@@ -618,6 +602,8 @@ router.delete("/:productId", async (req, res) => {
 });
 
 
+=======
+>>>>>>> origin/yigit
 router.get("/detail/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
