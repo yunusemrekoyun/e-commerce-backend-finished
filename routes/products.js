@@ -93,57 +93,57 @@ router.put(
   }
 );
 
-router.get("/:productId", async (req, res) => {
-  try {
-    const productId = req.params.productId;
-    // reviews.user’ı populate ediyoruz ki username/avatar görünsün
-    const product = await Product.findById(productId).populate(
-      "reviews.user",
-      "username avatar"
-    );
-    if (!product) {
-      return res.status(404).json({ error: "Product not found." });
-    }
+// router.get("/:productId", async (req, res) => {
+//   try {
+//     const productId = req.params.productId;
+//     // reviews.user’ı populate ediyoruz ki username/avatar görünsün
+//     const product = await Product.findById(productId).populate(
+//       "reviews.user",
+//       "username avatar"
+//     );
+//     if (!product) {
+//       return res.status(404).json({ error: "Product not found." });
+//     }
 
-    // Sadece approved === true yorumları al
-    const approvedReviews = product.reviews
-      .filter((r) => r.approved)
-      .map((r) => ({
-        _id: r._id,
-        text: r.text,
-        rating: r.rating,
-        user: r.user, // { username, avatar, _id }
-        createdAt: r.createdAt,
-      }));
+//     // Sadece approved === true yorumları al
+//     const approvedReviews = product.reviews
+//       .filter((r) => r.approved)
+//       .map((r) => ({
+//         _id: r._id,
+//         text: r.text,
+//         rating: r.rating,
+//         user: r.user, // { username, avatar, _id }
+//         createdAt: r.createdAt,
+//       }));
 
-    // Görselleri base64 string’e çevir
-    const imageObjects = product.img.map((fileObj) => ({
-      _id: fileObj._id,
-      base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
-        "base64"
-      )}`,
-    }));
+//     // Görselleri base64 string’e çevir
+//     const imageObjects = product.img.map((fileObj) => ({
+//       _id: fileObj._id,
+//       base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
+//         "base64"
+//       )}`,
+//     }));
 
-    // Yanıtı döndür
-    return res.status(200).json({
-      _id: product._id,
-      name: product.name,
-      img: imageObjects,
-      colors: product.colors,
-      sizes: product.sizes,
-      price: product.price,
-      category: product.category,
-      brand: product.brand,
-      description: product.description,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-      reviews: approvedReviews, // sadece onaylı yorumlar
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Server error." });
-  }
-});
+//     // Yanıtı döndür
+//     return res.status(200).json({
+//       _id: product._id,
+//       name: product.name,
+//       img: imageObjects,
+//       colors: product.colors,
+//       sizes: product.sizes,
+//       price: product.price,
+//       category: product.category,
+//       brand: product.brand,
+//       description: product.description,
+//       createdAt: product.createdAt,
+//       updatedAt: product.updatedAt,
+//       reviews: approvedReviews, // sadece onaylı yorumlar
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: "Server error." });
+//   }
+// });
 
 // ————————————————————————
 // 4) Admin silme endpoint’i
@@ -349,11 +349,27 @@ router.get("/", async (req, res) => {
 router.get("/:productId", async (req, res) => {
   try {
     const productId = req.params.productId;
-    const product = await Product.findById(productId);
+    // reviews.user’ı populate ediyoruz ki username/avatar görünsün
+    // category’yi de populate ederek sadece { _id, name } dönüyoruz
+    const product = await Product.findById(productId)
+      .populate("reviews.user", "username avatar")
+      .populate("category", "name");
     if (!product) {
       return res.status(404).json({ error: "Product not found." });
     }
 
+    // Sadece onaylı (approved===true) yorumları alıyoruz
+    const approvedReviews = product.reviews
+      .filter((r) => r.approved)
+      .map((r) => ({
+        _id: r._id,
+        text: r.text,
+        rating: r.rating,
+        user: r.user, // burada { _id, username, avatar }
+        createdAt: r.createdAt,
+      }));
+
+    // Görselleri base64 string’e çeviriyoruz
     const imageObjects = product.img.map((fileObj) => ({
       _id: fileObj._id,
       base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
@@ -361,25 +377,24 @@ router.get("/:productId", async (req, res) => {
       )}`,
     }));
 
-    const productWithBase64 = {
+    // ve yanıtı dönüyoruz
+    return res.status(200).json({
       _id: product._id,
       name: product.name,
       img: imageObjects,
       colors: product.colors,
       sizes: product.sizes,
       price: product.price,
-      category: product.category,
-      brand: product.brand, // ← burada da
+      category: product.category, // artık { _id, name }
+      brand: product.brand,
       description: product.description,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
-      reviews: product.reviews || [],
-    };
-
-    res.status(200).json(productWithBase64);
+      reviews: approvedReviews,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error." });
+    console.error("GET /products/:productId error:", error);
+    return res.status(500).json({ error: "Server error." });
   }
 });
 
