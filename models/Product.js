@@ -19,8 +19,8 @@ const ProductSchema = mongoose.Schema(
     name: { type: String, required: true },
     img: [{ data: Buffer, contentType: String }],
     reviews: [ReviewSchema],
-    colors: [{ type: String, required: false }],
-    sizes: [{ type: String, required: false }],
+    colors: [{ type: String, required: false, default: [] }],
+    sizes: [{ type: String, required: false, default: [] }],
     price: {
       current: { type: Number, required: true },
       discount: { type: Number },

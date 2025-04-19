@@ -293,8 +293,9 @@ router.post("/", upload.array("img", 6), async (req, res) => {
 
     await newProduct.save();
     return res.status(201).json({ message: "Product created successfully." });
-  } catch (error) {
-    console.error(error);
+  }catch (error) {
+    console.error("Product creation failed:", error.message);
+    console.error("Full error:", error);
     res.status(500).json({ error: "Server error." });
   }
 });
@@ -323,15 +324,14 @@ router.get("/", async (req, res) => {
     }
 
     // 3) Colors
-    if (colors) {
-      const colorArr = colors.split(",");
-      queryObj.colors = { $in: colorArr };
+    if (colors && Array.isArray(colors)) {
+      queryObj.colors = { $in: colors };
     }
 
     // 4) Sizes
-    if (sizes) {
-      const sizeArr = sizes.split(",");
-      queryObj.sizes = { $in: sizeArr };
+    // 3) Colors
+    if (sizes && Array.isArray(sizes)) {
+      queryObj.sizes = { $in: sizes };
     }
 
     // 5) Price
