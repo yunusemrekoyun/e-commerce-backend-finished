@@ -63,9 +63,9 @@ router.post("/", authMiddleware, async (req, res) => {
         price: it.price,
         name: p.name,
         brand: p.brand,
-        category: p.category.name, // kategori adı
-        colors: p.colors.length > 0 ? p.colors : undefined, // Boş değilse renkleri gönder
-        sizes: p.sizes.length > 0 ? p.sizes : undefined, // Boş değilse bedenleri gönder
+        category: p.category.name,
+        color: it.selectedColor || null, // ✅ yeni eklenen alan
+        size: it.selectedSize || null, // ✅ yeni eklenen alan
       };
     });
 

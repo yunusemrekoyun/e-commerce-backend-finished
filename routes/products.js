@@ -7,7 +7,6 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// ————————————————————————
 // 1) Kullanıcıdan yeni yorum alacak endpoint
 router.post("/:productId/reviews", authMiddleware, async (req, res) => {
   try {
@@ -33,8 +32,6 @@ router.post("/:productId/reviews", authMiddleware, async (req, res) => {
   }
 });
 
-// ————————————————————————
-// ————————————————————————
 // 2) Admin için yorumları listeleme endpoint’i
 router.get("/admin/reviews", authMiddleware, async (req, res) => {
   try {
@@ -68,7 +65,6 @@ router.get("/admin/reviews", authMiddleware, async (req, res) => {
   }
 });
 
-// ————————————————————————
 // 3) Admin onaylama endpoint’i
 router.put(
   "/:productId/reviews/:reviewId/approve",
@@ -92,114 +88,6 @@ router.put(
     }
   }
 );
-/*bu kısımdaki sorgu aşağıdaki Read-Single kısmıyla aynı */
-// router.get("/:productId", async (req, res) => {
-//   try {
-//     const productId = req.params.productId;
-//     // reviews.user’ı populate ediyoruz ki username/avatar görünsün
-//     const product = await Product.findById(productId).populate(
-//       "reviews.user",
-//       "username avatar"
-//     );
-//     if (!product) {
-//       return res.status(404).json({ error: "Product not found." });
-//     }
-
-
-//     // Sadece approved === true yorumları al
-//     const approvedReviews = product.reviews
-//       .filter((r) => r.approved)
-//       .map((r) => ({
-//         _id: r._id,
-//         text: r.text,
-//         rating: r.rating,
-//         user: r.user, // { username, avatar, _id }
-//         createdAt: r.createdAt,
-//       }));
-
-//     // Görselleri base64 string’e çevir
-//     const imageObjects = product.img.map((fileObj) => ({
-//       _id: fileObj._id,
-//       base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
-//         "base64"
-//       )}`,
-//     }));
-
-//     // Yanıtı döndür
-//     return res.status(200).json({
-//       _id: product._id,
-//       name: product.name,
-//       img: imageObjects,
-//       colors: product.colors,
-//       sizes: product.sizes,
-//       price: product.price,
-//       category: product.category,
-//       brand: product.brand,
-//       description: product.description,
-//       createdAt: product.createdAt,
-//       updatedAt: product.updatedAt,
-//       reviews: approvedReviews, // sadece onaylı yorumlar
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ error: "Server error." });
-//   }
-// });
-
-
-// router.get("/:productId", async (req, res) => {
-//   try {
-//     const productId = req.params.productId;
-//     // reviews.user’ı populate ediyoruz ki username/avatar görünsün
-//     const product = await Product.findById(productId).populate(
-//       "reviews.user",
-//       "username avatar"
-//     );
-//     if (!product) {
-//       return res.status(404).json({ error: "Product not found." });
-//     }
-
-//     // Sadece approved === true yorumları al
-//     const approvedReviews = product.reviews
-//       .filter((r) => r.approved)
-//       .map((r) => ({
-//         _id: r._id,
-//         text: r.text,
-//         rating: r.rating,
-//         user: r.user, // { username, avatar, _id }
-//         createdAt: r.createdAt,
-//       }));
-
-//     // Görselleri base64 string’e çevir
-//     const imageObjects = product.img.map((fileObj) => ({
-//       _id: fileObj._id,
-//       base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
-//         "base64"
-//       )}`,
-//     }));
-
-//     // Yanıtı döndür
-//     return res.status(200).json({
-//       _id: product._id,
-//       name: product.name,
-//       img: imageObjects,
-//       colors: product.colors,
-//       sizes: product.sizes,
-//       price: product.price,
-//       category: product.category,
-//       brand: product.brand,
-//       description: product.description,
-//       createdAt: product.createdAt,
-//       updatedAt: product.updatedAt,
-//       reviews: approvedReviews, // sadece onaylı yorumlar
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ error: "Server error." });
-//   }
-// });
-
-// ————————————————————————
 
 // 4) Admin silme endpoint’i
 router.delete(
@@ -222,26 +110,6 @@ router.delete(
     }
   }
 );
-// Yeni endpoint: /api/products/filters
-router.get("/filters", async (req, res) => {
-  try {
-    // 1) Renkleri distinct olarak çek
-    const distinctColors = await Product.distinct("colors");
-    // 2) Bedenleri distinct olarak çek
-    const distinctSizes = await Product.distinct("sizes");
-    // 3) Markaları distinct olarak çek
-    const distinctBrands = await Product.distinct("brand");
-
-    return res.json({
-      colors: distinctColors,
-      sizes: distinctSizes,
-      brands: distinctBrands,
-    });
-  } catch (error) {
-    console.error("filters endpoint error:", error);
-    return res.status(500).json({ error: "Server error." });
-  }
-});
 
 // Yeni bir ürün oluşturma (Create)
 router.post("/", upload.array("img", 6), async (req, res) => {
@@ -251,8 +119,8 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       category,
       brand,
       description,
-      colors,   // Opsiyonel
-      sizes,    // Opsiyonel
+      colors, // Opsiyonel
+      sizes, // Opsiyonel
       current,
       discount,
     } = req.body;
@@ -272,8 +140,16 @@ router.post("/", upload.array("img", 6), async (req, res) => {
     };
 
     // colors ve sizes opsiyonel, boşsa boş dizi atıyoruz
-    const colorArr = colors ? (Array.isArray(colors) ? colors : colors.split(",").map((c) => c.trim())) : [];
-    const sizeArr = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(",").map((s) => s.trim())) : [];
+    const colorArr = colors
+      ? Array.isArray(colors)
+        ? colors
+        : colors.split(",").map((c) => c.trim())
+      : [];
+    const sizeArr = sizes
+      ? Array.isArray(sizes)
+        ? sizes
+        : sizes.split(",").map((s) => s.trim())
+      : [];
 
     const images = req.files.map((file) => ({
       data: file.buffer,
@@ -293,7 +169,7 @@ router.post("/", upload.array("img", 6), async (req, res) => {
 
     await newProduct.save();
     return res.status(201).json({ message: "Product created successfully." });
-  }catch (error) {
+  } catch (error) {
     console.error("Product creation failed:", error.message);
     console.error("Full error:", error);
     res.status(500).json({ error: "Server error." });
@@ -400,9 +276,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-/********************************************************
- * Read - Single (tek ürün getirme)
- ********************************************************/
+ // Read - Single (tek ürün getirme)
 router.get("/:productId", async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -455,16 +329,21 @@ router.get("/:productId", async (req, res) => {
   }
 });
 
-/// Ürün güncelleme (Update)
+// Ürün güncelleme (Update)
 router.put("/:productId", upload.array("img", 6), async (req, res) => {
   try {
     const productId = req.params.productId;
-    const existingProduct = await Product.findById(productId);
-    if (!existingProduct) {
+    const product = await Product.findById(productId);
+    if (!product) {
       return res.status(404).json({ error: "Product not found." });
     }
-
-    // Temel alanları güncelle
+    /*
+//Product Image Update kısmında resim override durumunda kontrol logları:
+    // console.log("🔄 Güncelleme isteği alındı:");
+    // console.log("Body:", req.body);
+    // console.log("Yüklenen dosya sayısı:", req.files?.length || 0);
+    // console.log("Önceki görseller:", product.img.map((i) => i._id.toString()));
+*/
     const {
       name,
       category,
@@ -474,117 +353,78 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       discount,
       colors,
       sizes,
-      keepImages,
-      reviews,
+      keepImages, // 👈 kullanıcıdan gelen tutulacak eski resimler
     } = req.body;
 
-    if (name) existingProduct.name = name;
-    if (category) existingProduct.category = category;
-    if (brand) existingProduct.brand = brand;
-    if (description) existingProduct.description = description;
-
-    if (current !== undefined) {
-      existingProduct.price.current = Number(current);
-    }
-    if (discount !== undefined) {
-      existingProduct.price.discount = Number(discount);
-    }
-
-    // 1) Renk güncellemesi
-    if (colors !== undefined) {
-      if (typeof colors === "string") {
-        const trimmed = colors.trim();
-        // Eğer boş ise, boş dizi olarak ayarla
-        existingProduct.colors = trimmed === "" ? [] : trimmed.split(",").map((c) => c.trim());
-      } else if (Array.isArray(colors)) {
-        existingProduct.colors = colors;
-      }
-    }
-
-    // 2) Beden güncellemesi
-    if (sizes !== undefined) {
-      if (typeof sizes === "string") {
-        const trimmed = sizes.trim();
-        // Eğer boş ise, boş dizi olarak ayarla
-        existingProduct.sizes = trimmed === "" ? [] : trimmed.split(",").map((s) => s.trim());
-      } else if (Array.isArray(sizes)) {
-        existingProduct.sizes = sizes;
-      }
-    }
-
-    // Yorum güncellemesi
-    if (reviews !== undefined) {
+    // keepImages varsa işle
+    let keepIDs = [];
+    if (keepImages) {
       try {
-        existingProduct.reviews = Array.isArray(reviews) ? reviews : JSON.parse(reviews);
+        keepIDs = JSON.parse(keepImages);
+        console.log("✅ Korunacak resim ID'leri:", keepIDs);
       } catch (err) {
-        return res.status(400).json({ error: "Invalid reviews format." });
-      }
-    }
-
-    // 3) Görseller güncellemesi
-    if (keepImages !== undefined || (req.files && req.files.length > 0)) {
-      let keepIDs = [];
-      if (keepImages) {
-        try {
-          keepIDs = JSON.parse(keepImages);
-        } catch (err) {
-          return res.status(400).json({ error: "Invalid keepImages format." });
-        }
+        return res.status(400).json({ error: "Invalid keepImages format." });
       }
 
-      // Seçilen görselleri koru
-      existingProduct.img = existingProduct.img.filter((imgSubDoc) =>
-        keepIDs.includes(imgSubDoc._id.toString())
+      // Eski resimlerden sadece belirtilenleri tut
+      product.img = product.img.filter((img) =>
+        keepIDs.includes(img._id.toString())
       );
-
-      // Yeni yüklenenleri ekle
-      if (req.files?.length) {
-        req.files.forEach((file) =>
-          existingProduct.img.push({
-            data: file.buffer,
-            contentType: file.mimetype,
-          })
-        );
-      }
-
-      // Maksimum 6 resim kontrolü
-      if (existingProduct.img.length > 6) {
-        return res.status(400).json({ error: "En fazla 6 görsel yükleyebilirsiniz." });
-      }
+      console.log("🔹 Filtre sonrası kalan resimler:", product.img.map((i) => i._id.toString()));
     }
 
-    // Ürünü kaydet
-    await existingProduct.save();
+    if (name) product.name = name;
+    if (category) product.category = category;
+    if (brand) product.brand = brand;
+    if (description) product.description = description;
+    if (current) product.price.current = Number(current);
+    if (discount) product.price.discount = Number(discount);
 
-    // Güncellenmiş ürünü base64 img ile geri gönder
-    const updated = await Product.findById(productId);
-    const imageObjects = updated.img.map((fileObj) => ({
-      _id: fileObj._id,
-      base64: `data:${fileObj.contentType};base64,${fileObj.data.toString("base64")}`,
+    product.colors = colors
+      ? Array.isArray(colors)
+        ? colors
+        : colors.split(",").map((c) => c.trim())
+      : [];
+
+    product.sizes = sizes
+      ? Array.isArray(sizes)
+        ? sizes
+        : sizes.split(",").map((s) => s.trim())
+      : [];
+
+    // Yeni görseller varsa ekle (eski korunanlara ek olarak)
+    if (req.files?.length > 0) {
+      const newImages = req.files.map((file) => ({
+        data: file.buffer,
+        contentType: file.mimetype,
+      }));
+      product.img.push(...newImages); // 👈 eskilerin üzerine yazma değil, ekleme!
+      console.log("🆕 Yeni eklenen görsel sayısı:", newImages.length);
+    }
+
+    // Maksimum 6 görsel kontrolü
+    if (product.img.length > 6) {
+      return res
+        .status(400)
+        .json({ error: "En fazla 6 görsel yükleyebilirsiniz." });
+    }
+
+    await product.save();
+
+    const base64Imgs = product.img.map((f) => ({
+      _id: f._id,
+      base64: `data:${f.contentType};base64,${f.data.toString("base64")}`,
     }));
 
-    const productWithBase64 = {
-      _id: updated._id,
-      name: updated.name,
-      img: imageObjects,
-      colors: updated.colors,
-      sizes: updated.sizes,
-      price: updated.price,
-      category: updated.category,
-      brand: updated.brand,
-      description: updated.description,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-      reviews: updated.reviews || [],
-    };
-
-    return res.status(200).json(productWithBase64);
-  } catch (error) {
-    console.error("PUT /products/:productId error:", error);
+    return res.status(200).json({
+      ...product.toObject(),
+      img: base64Imgs,
+    });
+  } catch (err) {
+    console.error("❌ Update error:", err);
     return res.status(500).json({ error: "Server error." });
   }
 });
-
 
 // Ürün silme (Delete)
 router.delete("/:productId", async (req, res) => {
@@ -601,9 +441,7 @@ router.delete("/:productId", async (req, res) => {
   }
 });
 
-
-
-
+// Ürün detayını getirme (Read - Single)
 router.get("/detail/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
@@ -647,5 +485,139 @@ router.get("/search/:productName", async (req, res) => {
     res.status(500).json({ error: "Server error." });
   }
 });
+
+
+/*
+// Yeni endpoint: /api/products/filters
+router.get("/filters", async (req, res) => {
+  try {
+    // 1) Renkleri distinct olarak çek
+    const distinctColors = await Product.distinct("colors");
+    // 2) Bedenleri distinct olarak çek
+    const distinctSizes = await Product.distinct("sizes");
+    // 3) Markaları distinct olarak çek
+    const distinctBrands = await Product.distinct("brand");
+
+    return res.json({
+      colors: distinctColors,
+      sizes: distinctSizes,
+      brands: distinctBrands,
+    });
+  } catch (error) {
+    console.error("filters endpoint error:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+});
+*/
+
+
+
+
+
+
+/*bu kısımdaki sorgu aşağıdaki Read-Single kısmıyla aynı */
+// router.get("/:productId", async (req, res) => {
+//   try {
+//     const productId = req.params.productId;
+//     // reviews.user’ı populate ediyoruz ki username/avatar görünsün
+//     const product = await Product.findById(productId).populate(
+//       "reviews.user",
+//       "username avatar"
+//     );
+//     if (!product) {
+//       return res.status(404).json({ error: "Product not found." });
+//     }
+
+//     // Sadece approved === true yorumları al
+//     const approvedReviews = product.reviews
+//       .filter((r) => r.approved)
+//       .map((r) => ({
+//         _id: r._id,
+//         text: r.text,
+//         rating: r.rating,
+//         user: r.user, // { username, avatar, _id }
+//         createdAt: r.createdAt,
+//       }));
+
+//     // Görselleri base64 string’e çevir
+//     const imageObjects = product.img.map((fileObj) => ({
+//       _id: fileObj._id,
+//       base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
+//         "base64"
+//       )}`,
+//     }));
+
+//     // Yanıtı döndür
+//     return res.status(200).json({
+//       _id: product._id,
+//       name: product.name,
+//       img: imageObjects,
+//       colors: product.colors,
+//       sizes: product.sizes,
+//       price: product.price,
+//       category: product.category,
+//       brand: product.brand,
+//       description: product.description,
+//       createdAt: product.createdAt,
+//       updatedAt: product.updatedAt,
+//       reviews: approvedReviews, // sadece onaylı yorumlar
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: "Server error." });
+//   }
+// });
+
+// router.get("/:productId", async (req, res) => {
+//   try {
+//     const productId = req.params.productId;
+//     // reviews.user’ı populate ediyoruz ki username/avatar görünsün
+//     const product = await Product.findById(productId).populate(
+//       "reviews.user",
+//       "username avatar"
+//     );
+//     if (!product) {
+//       return res.status(404).json({ error: "Product not found." });
+//     }
+
+//     // Sadece approved === true yorumları al
+//     const approvedReviews = product.reviews
+//       .filter((r) => r.approved)
+//       .map((r) => ({
+//         _id: r._id,
+//         text: r.text,
+//         rating: r.rating,
+//         user: r.user, // { username, avatar, _id }
+//         createdAt: r.createdAt,
+//       }));
+
+//     // Görselleri base64 string’e çevir
+//     const imageObjects = product.img.map((fileObj) => ({
+//       _id: fileObj._id,
+//       base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
+//         "base64"
+//       )}`,
+//     }));
+
+//     // Yanıtı döndür
+//     return res.status(200).json({
+//       _id: product._id,
+//       name: product.name,
+//       img: imageObjects,
+//       colors: product.colors,
+//       sizes: product.sizes,
+//       price: product.price,
+//       category: product.category,
+//       brand: product.brand,
+//       description: product.description,
+//       createdAt: product.createdAt,
+//       updatedAt: product.updatedAt,
+//       reviews: approvedReviews, // sadece onaylı yorumlar
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: "Server error." });
+//   }
+// });
 
 module.exports = router;

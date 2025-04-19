@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const OrderItemSchema = new mongoose.Schema(
   {
     productId: {
@@ -11,9 +10,9 @@ const OrderItemSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     name: { type: String, required: true },
     brand: { type: String, required: true },
-    category: { type: String, required: true }, // artık kategori adı
-    colors: [{ type: String, required: false }], // Boş olabilir
-    sizes: [{ type: String, required: false }],  // Boş olabilir
+    category: { type: String, required: true },
+    color: { type: String }, // ✅ tekil color
+    size: { type: String }, // ✅ tekil size
   },
   { _id: false }
 );
