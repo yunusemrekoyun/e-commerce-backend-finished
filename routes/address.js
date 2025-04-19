@@ -4,17 +4,23 @@
 const express = require("express");
 const router = express.Router();
 const Address = require("../models/Address");
+const User = require("../models/User");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// Adres Ekleme
+// 📌 Adres Ekleme
 router.post("/add", authMiddleware, async (req, res) => {
   try {
-    console.log("Gelen veri:", req.body); // 🚨 EKLE BUNU
-    const { name, email, phone, address, city, district } = req.body;
+    const { name, phone, address, city, district } = req.body;
+
+    // 🔄 Email’i kullanıcıdan al
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const newAddress = new Address({
       name,
-      email,
+      email: user.email, // ✅ Email artık backend'den geliyor
       phone,
       address,
       city,
@@ -29,48 +35,67 @@ router.post("/add", authMiddleware, async (req, res) => {
       address: newAddress,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error adding address", error: error.message });
+    console.error("Adres ekleme sırasında hata:", error);
+    res.status(500).json({
+      message: "Error adding address",
+      error: error.message,
+    });
   }
 });
 
-// Kullanıcının adreslerini görüntüleme
+// 📌 Kullanıcının adreslerini görüntüleme
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const addresses = await Address.find({ userId: req.user.id });
     res.status(200).json(addresses);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching addresses", error: error.message });
+    res.status(500).json({
+      message: "Error fetching addresses",
+      error: error.message,
+    });
   }
 });
 
-// Address güncelleme
+// 📌 Adres Güncelleme
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const address = await Address.findOneAndUpdate(
+    const { name, phone, address, city, district } = req.body;
+
+    // 🔄 Email’i yine backend'den çek
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const updated = await Address.findOneAndUpdate(
       { _id: id, userId: req.user.id },
-      req.body,
+      {
+        name,
+        phone,
+        address,
+        city,
+        district,
+        email: user.email, // ✅ Güncellenen adresin email'i güncel kalır
+      },
       { new: true }
     );
 
-    if (!address) {
-      return res
-        .status(404)
-        .json({ message: "Address not found or unauthorized" });
+    if (!updated) {
+      return res.status(404).json({
+        message: "Address not found or unauthorized",
+      });
     }
 
     res.status(200).json({
       message: "Address updated successfully",
-      address,
+      address: updated,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error updating address", error: error.message });
+    res.status(500).json({
+      message: "Error updating address",
+      error: error.message,
+    });
   }
 });
 
