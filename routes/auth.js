@@ -127,25 +127,39 @@ router.put("/change-password", authMiddleware, async (req, res) => {
 /********************************************************
  * /refresh
  ********************************************************/
-router.post("/refresh", (req, res) => {
+router.post("/refresh", async (req, res) => {
   try {
     const { refreshToken, oldAccessToken } = req.body;
+
     if (!refreshToken) {
       return res.status(400).json({ error: "Refresh token missing" });
     }
-    jwt.verify(refreshToken, REFRESH_SECRET, (err, decoded) => {
+
+    jwt.verify(refreshToken, REFRESH_SECRET, async (err, decoded) => {
       if (err) {
         return res
           .status(401)
           .json({ error: "Invalid or expired refresh token" });
       }
 
+      // ✅ Kullanıcıyı veritabanından çek → rolünü al
+      const user = await User.findById(decoded.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // 🛑 Eski token'ı kara listeye ekle (opsiyonel)
       if (oldAccessToken) {
         blacklistedTokens.add(oldAccessToken);
       }
 
+      // ✅ Yeni access token'a role ekle
       const newAccessToken = jwt.sign(
-        { id: decoded.id, email: decoded.email },
+        {
+          id: user._id,
+          email: user.email,
+          role: user.role, // 👈 BURASI EFSANE KRİTİK
+        },
         SECRET_KEY,
         { expiresIn: "15m" }
       );
