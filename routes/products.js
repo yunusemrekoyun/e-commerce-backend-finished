@@ -105,7 +105,7 @@ router.put(
 //       return res.status(404).json({ error: "Product not found." });
 //     }
 
-<<<<<<< HEAD
+
 //     // Sadece approved === true yorumları al
 //     const approvedReviews = product.reviews
 //       .filter((r) => r.approved)
@@ -146,7 +146,7 @@ router.put(
 //   }
 // });
 
-=======
+
 // router.get("/:productId", async (req, res) => {
 //   try {
 //     const productId = req.params.productId;
@@ -200,7 +200,7 @@ router.put(
 // });
 
 // ————————————————————————
->>>>>>> origin/yigit
+
 // 4) Admin silme endpoint’i
 router.delete(
   "/:productId/reviews/:reviewId",
@@ -584,7 +584,7 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 });
-<<<<<<< HEAD
+
 
 // Ürün silme (Delete)
 router.delete("/:productId", async (req, res) => {
@@ -602,8 +602,8 @@ router.delete("/:productId", async (req, res) => {
 });
 
 
-=======
->>>>>>> origin/yigit
+
+
 router.get("/detail/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
