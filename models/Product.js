@@ -34,15 +34,15 @@ const ProductSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-// // Ortalama puanı güncelleyen pre-save hook'u
-// ProductSchema.pre('save', function (next) {
-//   if (this.reviews && this.reviews.length > 0) {
-//     const totalRating = this.reviews.reduce((sum, review) => sum + review.rating, 0);
-//     this.averageRating = totalRating / this.reviews.length; // Ortalama puan hesaplama
-//   } else {
-//     this.averageRating = 0; // İnceleme yoksa 0 olarak ayarla
-//   }
-//   next();
-// });
+// Ortalama puanı güncelleyen pre-save hook'u
+ProductSchema.pre('save', function (next) {
+  if (this.reviews && this.reviews.length > 0) {
+    const totalRating = this.reviews.reduce((sum, review) => sum + review.rating, 0);
+    this.averageRating = totalRating / this.reviews.length; // Ortalama puan hesaplama
+  } else {
+    this.averageRating = 0; // İnceleme yoksa 0 olarak ayarla
+  }
+  next();
+});
 
 module.exports = mongoose.model("Product", ProductSchema);

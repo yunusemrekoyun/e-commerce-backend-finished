@@ -263,6 +263,7 @@ router.get("/", async (req, res) => {
         price: prod.price,
         category: prod.category,
         brand: prod.brand, // ← döndürülüyor
+        averageRating: prod.averageRating || 0, // 👈 EKLENDİ
         description: prod.description,
         createdAt: prod.createdAt,
         updatedAt: prod.updatedAt,
@@ -276,7 +277,7 @@ router.get("/", async (req, res) => {
   }
 });
 
- // Read - Single (tek ürün getirme)
+// Read - Single (tek ürün getirme)
 router.get("/:productId", async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -370,7 +371,10 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       product.img = product.img.filter((img) =>
         keepIDs.includes(img._id.toString())
       );
-      console.log("🔹 Filtre sonrası kalan resimler:", product.img.map((i) => i._id.toString()));
+      console.log(
+        "🔹 Filtre sonrası kalan resimler:",
+        product.img.map((i) => i._id.toString())
+      );
     }
 
     if (name) product.name = name;
@@ -486,7 +490,6 @@ router.get("/search/:productName", async (req, res) => {
   }
 });
 
-
 /*
 // Yeni endpoint: /api/products/filters
 router.get("/filters", async (req, res) => {
@@ -509,11 +512,6 @@ router.get("/filters", async (req, res) => {
   }
 });
 */
-
-
-
-
-
 
 /*bu kısımdaki sorgu aşağıdaki Read-Single kısmıyla aynı */
 // router.get("/:productId", async (req, res) => {
