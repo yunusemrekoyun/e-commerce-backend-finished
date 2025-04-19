@@ -196,8 +196,8 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       category,
       brand,
       description,
-      colors,
-      sizes,
+      colors,   // Opsiyonel
+      sizes,    // Opsiyonel
       current,
       discount,
     } = req.body;
@@ -216,12 +216,9 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       discount: Number(discount) || 0,
     };
 
-    const colorArr = Array.isArray(colors)
-      ? colors
-      : colors.split(",").map((c) => c.trim());
-    const sizeArr = Array.isArray(sizes)
-      ? sizes
-      : sizes.split(",").map((s) => s.trim());
+    // colors ve sizes opsiyonel, boşsa boş dizi atıyoruz
+    const colorArr = colors ? (Array.isArray(colors) ? colors : colors.split(",").map((c) => c.trim())) : [];
+    const sizeArr = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(",").map((s) => s.trim())) : [];
 
     const images = req.files.map((file) => ({
       data: file.buffer,
@@ -236,7 +233,7 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       sizes: sizeArr,
       price: priceObj,
       category,
-      brand, // ← burayı ekledik
+      brand,
     });
 
     await newProduct.save();
@@ -386,9 +383,7 @@ router.get("/:productId", async (req, res) => {
   }
 });
 
-/********************************************************
- * Ürün güncelleme (Update)
- ********************************************************/
+/// Ürün güncelleme (Update)
 router.put("/:productId", upload.array("img", 6), async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -397,7 +392,7 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       return res.status(404).json({ error: "Product not found." });
     }
 
-    // 1) Temel alanları güncelle
+    // Temel alanları güncelle
     const {
       name,
       category,
@@ -415,42 +410,63 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
     if (category) existingProduct.category = category;
     if (brand) existingProduct.brand = brand;
     if (description) existingProduct.description = description;
-    if (current != null || discount != null) {
-      existingProduct.price.current = Number(current) || 0;
-      existingProduct.price.discount = Number(discount) || 0;
+
+    if (current !== undefined) {
+      existingProduct.price.current = Number(current);
     }
-    if (colors) {
-      existingProduct.colors = Array.isArray(colors)
-        ? colors
-        : colors.split(",").map((c) => c.trim());
-    }
-    if (sizes) {
-      existingProduct.sizes = Array.isArray(sizes)
-        ? sizes
-        : sizes.split(",").map((s) => s.trim());
+    if (discount !== undefined) {
+      existingProduct.price.discount = Number(discount);
     }
 
-    // 2) Yorum güncellemesi
-    if (reviews) {
-      existingProduct.reviews = Array.isArray(reviews)
-        ? reviews
-        : JSON.parse(reviews);
+    // 1) Renk güncellemesi
+    if (colors !== undefined) {
+      if (typeof colors === "string") {
+        const trimmed = colors.trim();
+        // Eğer boş ise, boş dizi olarak ayarla
+        existingProduct.colors = trimmed === "" ? [] : trimmed.split(",").map((c) => c.trim());
+      } else if (Array.isArray(colors)) {
+        existingProduct.colors = colors;
+      }
     }
 
-    // 3) ** Sadece resim değişikliği yapıldıysa** mevcut img dizisini filtrele ve/veya yenilerini ekle
-    if (keepImages || (req.files && req.files.length > 0)) {
+    // 2) Beden güncellemesi
+    if (sizes !== undefined) {
+      if (typeof sizes === "string") {
+        const trimmed = sizes.trim();
+        // Eğer boş ise, boş dizi olarak ayarla
+        existingProduct.sizes = trimmed === "" ? [] : trimmed.split(",").map((s) => s.trim());
+      } else if (Array.isArray(sizes)) {
+        existingProduct.sizes = sizes;
+      }
+    }
+
+    // Yorum güncellemesi
+    if (reviews !== undefined) {
+      try {
+        existingProduct.reviews = Array.isArray(reviews) ? reviews : JSON.parse(reviews);
+      } catch (err) {
+        return res.status(400).json({ error: "Invalid reviews format." });
+      }
+    }
+
+    // 3) Görseller güncellemesi
+    if (keepImages !== undefined || (req.files && req.files.length > 0)) {
       let keepIDs = [];
       if (keepImages) {
         try {
           keepIDs = JSON.parse(keepImages);
-        } catch {}
+        } catch (err) {
+          return res.status(400).json({ error: "Invalid keepImages format." });
+        }
       }
-      // Sadece keepIDs içindekileri tut
+
+      // Seçilen görselleri koru
       existingProduct.img = existingProduct.img.filter((imgSubDoc) =>
         keepIDs.includes(imgSubDoc._id.toString())
       );
+
       // Yeni yüklenenleri ekle
-      if (req.files && req.files.length) {
+      if (req.files?.length) {
         req.files.forEach((file) =>
           existingProduct.img.push({
             data: file.buffer,
@@ -458,24 +474,23 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
           })
         );
       }
+
+      // Maksimum 6 resim kontrolü
       if (existingProduct.img.length > 6) {
-        return res
-          .status(400)
-          .json({ error: "En fazla 6 görsel yükleyebilirsiniz." });
+        return res.status(400).json({ error: "En fazla 6 görsel yükleyebilirsiniz." });
       }
     }
 
-    // 4) Kaydet
+    // Ürünü kaydet
     await existingProduct.save();
 
-    // 5) Güncel ürünü base64 img + tüm alanlarla döndür
+    // Güncellenmiş ürünü base64 img ile geri gönder
     const updated = await Product.findById(productId);
     const imageObjects = updated.img.map((fileObj) => ({
       _id: fileObj._id,
-      base64: `data:${fileObj.contentType};base64,${fileObj.data.toString(
-        "base64"
-      )}`,
+      base64: `data:${fileObj.contentType};base64,${fileObj.data.toString("base64")}`,
     }));
+
     const productWithBase64 = {
       _id: updated._id,
       name: updated.name,
@@ -495,21 +510,6 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
   } catch (error) {
     console.error("PUT /products/:productId error:", error);
     return res.status(500).json({ error: "Server error." });
-  }
-});
-
-// Ürün silme (Delete)
-router.delete("/:productId", async (req, res) => {
-  try {
-    const productId = req.params.productId;
-    const deletedProduct = await Product.findByIdAndDelete(productId);
-    if (!deletedProduct) {
-      return res.status(404).json({ error: "Product not found." });
-    }
-    res.status(200).json({ message: "Product deleted successfully." });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error." });
   }
 });
 router.get("/detail/:id", async (req, res) => {

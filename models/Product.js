@@ -19,8 +19,8 @@ const ProductSchema = mongoose.Schema(
     name: { type: String, required: true },
     img: [{ data: Buffer, contentType: String }],
     reviews: [ReviewSchema],
-    colors: [{ type: String, required: true }],
-    sizes: [{ type: String, required: true }],
+    colors: [{ type: String, required: false }],
+    sizes: [{ type: String, required: false }],
     price: {
       current: { type: Number, required: true },
       discount: { type: Number },
@@ -30,8 +30,8 @@ const ProductSchema = mongoose.Schema(
       ref: "Category",
       required: true,
     },
-    brand: { type: String, required: true },
-    description: { type: String, required: true },
+    brand: { type: String, required: false },
+    description: { type: String, required: false },
   },
   { timestamps: true }
 );
