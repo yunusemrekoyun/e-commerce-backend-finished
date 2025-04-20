@@ -263,7 +263,7 @@ router.get("/", async (req, res) => {
         price: prod.price,
         category: prod.category,
         brand: prod.brand, // ← döndürülüyor
-        averageRating: prod.averageRating || 0, // 👈 EKLENDİ
+        averageRating: prod.averageRating, // 👈 EKLENDİ
         description: prod.description,
         createdAt: prod.createdAt,
         updatedAt: prod.updatedAt,
@@ -319,6 +319,7 @@ router.get("/:productId", async (req, res) => {
       price: product.price,
       category: product.category, // artık { _id, name }
       brand: product.brand,
+      averageRating: product.averageRating,
       description: product.description,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
