@@ -383,8 +383,9 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
     if (brand) product.brand = brand;
     if (description) product.description = description;
     if (current) product.price.current = Number(current);
-    if (discount) product.price.discount = Number(discount);
-
+    //if (discount) product.price.discount = Number(discount);
+    const d = Number(discount);
+    product.price.discount = isNaN(d) ? 0 : d;
     product.colors = colors
       ? Array.isArray(colors)
         ? colors
