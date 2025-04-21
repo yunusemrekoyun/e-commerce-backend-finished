@@ -1,3 +1,4 @@
+//backend/routes/products.js
 const express = require("express");
 const Category = require("../models/Category.js");
 const router = express.Router();
