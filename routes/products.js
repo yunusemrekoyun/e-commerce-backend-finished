@@ -157,6 +157,8 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       contentType: file.mimetype,
     }));
 
+    const normalizedBrand = brand.trim().toLowerCase();
+
     const newProduct = new Product({
       name,
       img: images,
@@ -165,7 +167,7 @@ router.post("/", upload.array("img", 6), async (req, res) => {
       sizes: sizeArr,
       price: priceObj,
       category,
-      brand,
+      brand: normalizedBrand,
     });
 
     await newProduct.save();
@@ -196,8 +198,13 @@ router.get("/", async (req, res) => {
 
     // 2) Brand filtresi
     if (brand) {
-      const brandArr = brand.split(",");
-      queryObj.brand = { $in: brandArr.map((b) => new RegExp(`^${b}$`, "i")) };
+      /* brand paramı ya dizi (  ?brand=clear&brand=gliss  )
+         ya da tek string (     ?brand=clear,gliss         ) gelebilir   */
+      const brandArr = Array.isArray(brand)
+        ? brand.map((b) => b.trim().toLowerCase())
+        : brand.split(",").map((b) => b.trim().toLowerCase());
+
+      queryObj.brand = { $in: brandArr };
     }
 
     // 3) Colors
@@ -381,7 +388,7 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
 
     if (name) product.name = name;
     if (category) product.category = category;
-    if (brand) product.brand = brand;
+    if (brand) product.brand = brand.trim().toLowerCase();
     if (description) product.description = description;
     if (current) product.price.current = Number(current);
     //if (discount) product.price.discount = Number(discount);
