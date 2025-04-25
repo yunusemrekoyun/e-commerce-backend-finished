@@ -196,7 +196,7 @@ router.get("/", async (req, res) => {
 
     // 2) Brand filtresi
     if (brand) {
-      const brandArr = brand.split(",");
+      const brandArr = brand.split(",").map((b) => new RegExp(`^${b}$`, "i"));
       queryObj.brand = { $in: brandArr };
     }
 
