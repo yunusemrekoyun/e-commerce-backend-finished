@@ -347,13 +347,14 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
     if (!product) {
       return res.status(404).json({ error: "Product not found." });
     }
+
     /*
-//Product Image Update kısmında resim override durumunda kontrol logları:
+    // Product Image Update kısmında resim override durumunda kontrol logları:
     // console.log("🔄 Güncelleme isteği alındı:");
     // console.log("Body:", req.body);
     // console.log("Yüklenen dosya sayısı:", req.files?.length || 0);
     // console.log("Önceki görseller:", product.img.map((i) => i._id.toString()));
-*/
+    */
     const {
       name,
       category,
@@ -363,7 +364,8 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       discount,
       colors,
       sizes,
-      keepImages, // 👈 kullanıcıdan gelen tutulacak eski resimler
+      keepImages, // 👈 tutulacak görseller
+      deletedImages, // 👈 silinecek görseller (yeni ekledik)
     } = req.body;
 
     // keepImages varsa işle
@@ -386,14 +388,30 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
       );
     }
 
+    // deletedImages varsa işle
+    if (deletedImages) {
+      try {
+        const deletedIDs = JSON.parse(deletedImages);
+        if (Array.isArray(deletedIDs) && deletedIDs.length > 0) {
+          product.img = product.img.filter(
+            (img) => !deletedIDs.includes(img._id.toString())
+          );
+          console.log("🗑️ Silinen resim ID'leri:", deletedIDs);
+        }
+      } catch (err) {
+        return res.status(400).json({ error: "Invalid deletedImages format." });
+      }
+    }
+
+    // Ürün diğer alanlarını güncelle
     if (name) product.name = name;
     if (category) product.category = category;
     if (brand) product.brand = brand.trim().toLowerCase();
     if (description) product.description = description;
     if (current) product.price.current = Number(current);
-    //if (discount) product.price.discount = Number(discount);
     const d = Number(discount);
     product.price.discount = isNaN(d) ? 0 : d;
+
     product.colors = colors
       ? Array.isArray(colors)
         ? colors
@@ -406,13 +424,13 @@ router.put("/:productId", upload.array("img", 6), async (req, res) => {
         : sizes.split(",").map((s) => s.trim())
       : [];
 
-    // Yeni görseller varsa ekle (eski korunanlara ek olarak)
+    // Yeni görseller varsa ekle
     if (req.files?.length > 0) {
       const newImages = req.files.map((file) => ({
         data: file.buffer,
         contentType: file.mimetype,
       }));
-      product.img.push(...newImages); // 👈 eskilerin üzerine yazma değil, ekleme!
+      product.img.push(...newImages);
       console.log("🆕 Yeni eklenen görsel sayısı:", newImages.length);
     }
 
