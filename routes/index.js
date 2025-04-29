@@ -15,14 +15,15 @@ const addressRoute = require("./address.js");
 const ordersRoute = require("./orders.js");
 const discountRoute = require("./discount.js");
 
-router.use("/orders", ordersRoute);
-router.use("/categories", categoryRoute);
+// Routerlar
 router.use("/auth", authRoute);
-router.use("/products", productRoute);
-router.use("/coupons", couponRoute);
 router.use("/users", userRoute);
+router.use("/categories", categoryRoute);
+router.use("/products", productRoute);
+router.use("/orders", ordersRoute);
+router.use("/discounts", discountRoute);
+router.use("/coupons", couponRoute);
 router.use("/payment", paymentRoute);
 router.use("/address", addressRoute);
 router.use("/dashboard", dashboardRoute);
-router.use("/discounts", discountRoute);
 module.exports = router;

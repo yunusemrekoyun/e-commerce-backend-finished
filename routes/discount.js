@@ -1,20 +1,24 @@
-/*/Applications/Works/e-commerce/backend/routes/discount.js
- ********************************************************/
+/********************************************************
+	•	/Applications/Works/e-commerce/backend/routes/discount.js
+********************************************************/
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 const Category = require("../models/Category");
 const Product = require("../models/Product");
 
-// **Yalnızca admin erişimi**
+// 📌 Yalnızca admin erişimi middleware
 const requireAdmin = (req, res, next) => {
   if (req.user?.role !== "admin") {
-    return res.status(403).json({ error: "Forbidden: admin only." });
+    return res.status(403).json({
+      success: false,
+      message: "Bu işlemi sadece adminler gerçekleştirebilir.",
+    });
   }
   next();
 };
 
-// 1) İndirimli ürünler listesi
+// 📌 1) İndirimli ürünler listesi
 // GET /api/discounts/products
 router.get("/products", authMiddleware, requireAdmin, async (req, res) => {
   try {
@@ -22,6 +26,7 @@ router.get("/products", authMiddleware, requireAdmin, async (req, res) => {
       "category",
       "name"
     );
+
     const list = prods.map((p) => ({
       _id: p._id,
       name: p.name,
@@ -34,30 +39,38 @@ router.get("/products", authMiddleware, requireAdmin, async (req, res) => {
       category: p.category?.name || null,
       brand: p.brand,
     }));
-    res.json(list);
+
+    res.status(200).json({
+      success: true,
+      data: list,
+      message: "İndirimli ürünler başarıyla getirildi.",
+    });
   } catch (err) {
     console.error("GET /discounts/products", err);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "İndirimli ürünler getirilirken bir hata oluştu.",
+    });
   }
 });
 
-// 2) İndirim uygula
+// 📌 2) İndirim uygula
 // POST /api/discounts/apply
-// body: { categoryId: string, brandIds?: string[], discount: number }
 router.post("/apply", authMiddleware, requireAdmin, async (req, res) => {
   try {
-
     const { categoryId, brandIds, discount, updateAll } = req.body;
+
     if (!categoryId || typeof discount !== "number") {
-      return res.status(400).json({ error: "categoryId ve discount zorunlu." });
+      return res.status(400).json({
+        success: false,
+        message: "Kategori ID'si ve indirim yüzdesi zorunludur.",
+      });
     }
 
-    const filter = {
-      category: categoryId,
-    };
+    const filter = { category: categoryId };
 
     if (!updateAll) {
-      filter["price.discount"] = { $eq: 0 }; // 🔥 sadece indirimi olmayan ürünler
+      filter["price.discount"] = { $eq: 0 };
     }
 
     if (
@@ -68,22 +81,26 @@ router.post("/apply", authMiddleware, requireAdmin, async (req, res) => {
       filter.brand = { $in: brandIds.map((b) => new RegExp(`^${b}$`, "i")) };
     }
 
-
-
     const result = await Product.updateMany(filter, {
       $set: { "price.discount": discount },
     });
 
-
-    res.json({
-      message: `Etkilenen doküman sayısı: ${result.modifiedCount}`,
+    res.status(200).json({
+      success: true,
+      data: { modifiedCount: result.modifiedCount },
+      message: `İndirim başarıyla uygulandı. Güncellenen ürün sayısı: ${result.modifiedCount}`,
     });
   } catch (err) {
     console.error("POST /discounts/apply", err);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "İndirim uygulanırken bir hata oluştu.",
+    });
   }
 });
-// Seçilen kategori ve markalarda indirimli ürün var mı kontrolü
+
+// 📌 3) Seçilen kategori ve markalarda indirimli ürün var mı kontrolü
+// POST /api/discounts/check
 router.post("/check", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { categoryId, brandIds } = req.body;
@@ -100,27 +117,48 @@ router.post("/check", authMiddleware, requireAdmin, async (req, res) => {
 
     const count = await Product.countDocuments(filter);
 
-    res.json({ hasDiscountedProducts: count > 0 });
+    res.status(200).json({
+      success: true,
+      data: { hasDiscountedProducts: count > 0 },
+      message: "İndirimli ürün kontrolü başarıyla yapıldı.",
+    });
   } catch (err) {
     console.error("POST /discounts/check", err);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "İndirim kontrolü sırasında bir hata oluştu.",
+    });
   }
 });
+
+// 📌 4) Bir ürünün indirimini kaldır
+// DELETE /api/discounts/:productId
 router.delete("/:productId", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { productId } = req.params;
     const product = await Product.findById(productId);
+
     if (!product) {
-      return res.status(404).json({ error: "Ürün bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Ürün bulunamadı.",
+      });
     }
 
     product.price.discount = 0;
     await product.save();
 
-    res.json({ message: "İndirim kaldırıldı." });
+    res.status(200).json({
+      success: true,
+      message: "Üründen indirim başarıyla kaldırıldı.",
+    });
   } catch (err) {
     console.error("DELETE /discounts/:productId", err);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "İndirim kaldırılırken bir hata oluştu.",
+    });
   }
 });
+
 module.exports = router;

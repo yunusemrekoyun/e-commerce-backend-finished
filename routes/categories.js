@@ -6,81 +6,123 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Yeni bir kategori oluşturma (Create)
+// 📌 Yeni Kategori Oluşturma
 router.post("/", async (req, res) => {
   try {
     const { name, brands } = req.body;
     if (!name) {
-      return res.status(400).json({ error: "Category name is required." });
+      return res.status(400).json({
+        success: false,
+        message: "Kategori adı zorunludur.",
+      });
     }
     const newCategory = new Category({ name, brands: brands || [] });
     await newCategory.save();
     res.status(201).json({
-      message: "Category created successfully.",
-      category: newCategory,
+      success: true,
+      data: newCategory,
+      message: "Kategori başarıyla oluşturuldu.",
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "Kategori oluşturulurken bir hata oluştu.",
+    });
   }
 });
 
-// Tüm kategorileri getirme (Read - All)
+// 📌 Tüm Kategorileri Getirme
 router.get("/", async (req, res) => {
   try {
     const categories = await Category.find();
-    res.status(200).json(categories);
+    res.status(200).json({
+      success: true,
+      data: categories,
+      message: "Kategoriler başarıyla getirildi.",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "Kategoriler getirilirken bir hata oluştu.",
+    });
   }
 });
 
-// Belirli bir kategoriyi getirme (Read - Single)
+// 📌 Belirli Bir Kategoriyi Getirme
 router.get("/:categoryId", async (req, res) => {
   try {
     const category = await Category.findById(req.params.categoryId);
     if (!category) {
-      return res.status(404).json({ error: "Category not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Kategori bulunamadı.",
+      });
     }
-    res.status(200).json(category);
+    res.status(200).json({
+      success: true,
+      data: category,
+      message: "Kategori başarıyla getirildi.",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "Kategori getirilirken bir hata oluştu.",
+    });
   }
 });
 
-// Kategori güncelleme
+// 📌 Kategori Güncelleme
 router.put("/:categoryId", async (req, res) => {
   try {
     const { name, brands } = req.body;
-    const cat = await Category.findById(req.params.categoryId);
-    if (!cat) {
-      return res.status(404).json({ error: "Category not found." });
+    const category = await Category.findById(req.params.categoryId);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Kategori bulunamadı.",
+      });
     }
-    if (name) cat.name = name;
-    if (Array.isArray(brands)) cat.brands = brands;
-    await cat.save();
-    res
-      .status(200)
-      .json({ message: "Category updated successfully.", category: cat });
+    if (name) category.name = name;
+    if (Array.isArray(brands)) category.brands = brands;
+    await category.save();
+
+    res.status(200).json({
+      success: true,
+      data: category,
+      message: "Kategori başarıyla güncellendi.",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "Kategori güncellenirken bir hata oluştu.",
+    });
   }
 });
 
-// Kategori silme (Delete)
+// 📌 Kategori Silme
 router.delete("/:categoryId", async (req, res) => {
   try {
     const deleted = await Category.findByIdAndDelete(req.params.categoryId);
     if (!deleted) {
-      return res.status(404).json({ error: "Category not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Kategori bulunamadı.",
+      });
     }
-    res.status(200).json({ message: "Category deleted successfully." });
+    res.status(200).json({
+      success: true,
+      message: "Kategori başarıyla silindi.",
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "Kategori silinirken bir hata oluştu.",
+    });
   }
 });
 

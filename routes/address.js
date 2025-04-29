@@ -1,6 +1,3 @@
-/********************************************************
- * /Applications/Works/e-commerce/backend/routes/address.js
- ********************************************************/
 const express = require("express");
 const router = express.Router();
 const Address = require("../models/Address");
@@ -12,15 +9,17 @@ router.post("/add", authMiddleware, async (req, res) => {
   try {
     const { name, phone, address, city, district } = req.body;
 
-    // 🔄 Email’i kullanıcıdan al
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı.",
+      });
     }
 
     const newAddress = new Address({
       name,
-      email: user.email, // ✅ Email artık backend'den geliyor
+      email: user.email,
       phone,
       address,
       city,
@@ -31,14 +30,15 @@ router.post("/add", authMiddleware, async (req, res) => {
     await newAddress.save();
 
     res.status(201).json({
-      message: "Address added successfully",
-      address: newAddress,
+      success: true,
+      data: newAddress,
+      message: "Adres başarıyla eklendi.",
     });
   } catch (error) {
     console.error("Adres ekleme sırasında hata:", error);
     res.status(500).json({
-      message: "Error adding address",
-      error: error.message,
+      success: false,
+      message: "Adres eklenirken bir hata oluştu.",
     });
   }
 });
@@ -47,11 +47,17 @@ router.post("/add", authMiddleware, async (req, res) => {
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const addresses = await Address.find({ userId: req.user.id });
-    res.status(200).json(addresses);
+
+    res.status(200).json({
+      success: true,
+      data: addresses,
+      message: "Adresler başarıyla getirildi.",
+    });
   } catch (error) {
+    console.error("Adresleri getirme sırasında hata:", error);
     res.status(500).json({
-      message: "Error fetching addresses",
-      error: error.message,
+      success: false,
+      message: "Adresler getirilirken bir hata oluştu.",
     });
   }
 });
@@ -62,10 +68,12 @@ router.put("/:id", authMiddleware, async (req, res) => {
     const { id } = req.params;
     const { name, phone, address, city, district } = req.body;
 
-    // 🔄 Email’i yine backend'den çek
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı.",
+      });
     }
 
     const updated = await Address.findOneAndUpdate(
@@ -76,25 +84,28 @@ router.put("/:id", authMiddleware, async (req, res) => {
         address,
         city,
         district,
-        email: user.email, // ✅ Güncellenen adresin email'i güncel kalır
+        email: user.email,
       },
       { new: true }
     );
 
     if (!updated) {
       return res.status(404).json({
-        message: "Address not found or unauthorized",
+        success: false,
+        message: "Adres bulunamadı veya yetki yok.",
       });
     }
 
     res.status(200).json({
-      message: "Address updated successfully",
-      address: updated,
+      success: true,
+      data: updated,
+      message: "Adres başarıyla güncellendi.",
     });
   } catch (error) {
+    console.error("Adres güncelleme sırasında hata:", error);
     res.status(500).json({
-      message: "Error updating address",
-      error: error.message,
+      success: false,
+      message: "Adres güncellenirken bir hata oluştu.",
     });
   }
 });

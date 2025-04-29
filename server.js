@@ -10,7 +10,24 @@ const port = 5000;
 dotenv.config();
 
 app.use(cors());
+app.use(logger("dev"));
+app.use(express.json());
 
+// ROUTES
+app.use("/api", mainRoute);
+
+// 404 Not Found Handler
+app.all("*", (req, res, next) => {
+  const error = new Error(`Bu istek yolu bulunamadı: ${req.originalUrl}`);
+  error.statusCode = 404;
+  next(error);
+});
+
+// Global Error Handler
+const errorHandler = require("./middlewares/errorHandler");
+app.use(errorHandler);
+
+// DATABASE CONNECTION AND SERVER START
 const connect = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -20,10 +37,6 @@ const connect = async () => {
   }
 };
 
-//middlewares
-app.use(logger("dev"));
-app.use(express.json());
-app.use("/api", mainRoute);
 app.listen(port, () => {
   connect();
   console.log(`Sunucu ${port} portunda çalışıyor.`);
