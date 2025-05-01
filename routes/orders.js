@@ -149,6 +149,7 @@ router.put("/:orderId", authMiddleware, async (req, res) => {
       "Sipariş Onaylandı",
       "Kargoya Verildi",
       "Teslim Edildi",
+      "İptal Edildi",
     ];
 
     if (!status || !validStatuses.includes(status)) {

@@ -47,6 +47,7 @@ const OrderSchema = new mongoose.Schema(
         "Sipariş Onaylandı",
         "Kargoya Verildi",
         "Teslim Edildi",
+        "İptal Edildi",
       ],
       default: "Sipariş Alındı",
     },
