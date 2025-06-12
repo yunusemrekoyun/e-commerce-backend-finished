@@ -61,4 +61,4 @@ This project is open-source and free to use.
 
 ## Author
 
-Developed by [yunusemrekoyun](https://github.com/yunusemrekoyun)
+Developed by [yunusemrekoyun](https://github.com/yunusemrekoyun) and [yigitcanozsahin](https://github.com/Yigitcanozsahin)
